@@ -1,6 +1,6 @@
 # About
 
-Add some information about your project here.
+This firmware is intenden to be used with an air qulity probe. For further information have a look on.
 
 # Installation
 
