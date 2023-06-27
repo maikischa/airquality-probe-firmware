@@ -1,0 +1,382 @@
+# These substitutions allow the end user to override certain values
+substitutions:
+  name: "air-quality-probe"
+  version: "0.1"
+
+esphome:
+  name: "${name}"
+  # Automatically add the mac address to the name
+  # so you can use a single firmware for all devices
+  name_add_mac_suffix: true
+
+  # This will allow for (future) project identification,
+  # configuration and updates.
+  project:
+    name: esphome.${name}
+    version: "${version}"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# To be able to get logs from the device via serial and api.
+logger:
+
+# API is a requirement of the dashboard import.
+api:
+  reboot_timeout: 0s
+
+# OTA is required for Over-the-Air updating
+ota:
+
+# This should point to the public location of this yaml file.
+dashboard_import:
+  package_import_url: github://maikischa/esphome-airqulity-probe/project-template-esp32.yaml@main
+
+wifi:
+  # Set up a wifi access point using the device name above
+  ap:
+
+# In combination with the `ap` this allows the user
+# to provision wifi credentials to the device.
+captive_portal:
+
+# Sets up the improv via serial client for Wi-Fi provisioning.
+# Handy if your device has a usb port for the user to add credentials when they first get it.
+improv_serial:
+
+#####################
+#####################
+
+switch:
+  - platform: gpio
+    id: lcd
+    pin: GPIO19
+    name: "LCD"
+    restore_mode: ALWAYS_ON
+
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+
+bme680_bsec:
+  address: 0x77
+  temperature_offset: 4.0
+
+sensor:
+  - platform: wifi_signal # Reports the WiFi signal strength/RSSI in dB
+    name: "WiFi Signal dB"
+    id: wifi_signal_db
+    update_interval: 60s
+    entity_category: "diagnostic"
+
+  - platform: copy # Reports the WiFi signal strength in %
+    source_id: wifi_signal_db
+    name: "WiFi Signal Percent"
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: "Signal %"
+    entity_category: "diagnostic"
+
+  - platform: bme680_bsec # Reports the BME680 values
+    temperature:
+      id: temperature
+      name: "BME680 Temperature"
+    pressure:
+      id: pressure
+      name: "BME680 Pressure"
+    humidity:
+      id: humidity
+      name: "BME680 Humidity"
+    iaq:
+      name: "BME680 IAQ"
+      id: iaq
+    co2_equivalent:
+      id: co2
+      name: "BME680 CO2 Equivalent"
+    breath_voc_equivalent:
+      id: voc
+      name: "BME680 Breath VOC Equivalent"
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO2
+      mode:
+        input: true
+        pulldown: True
+    name: input1
+  - platform: gpio
+    pin: 
+      number: GPIO4
+      mode:
+        input: true
+        pulldown: True
+    name: input2
+
+text_sensor:
+  - platform: bme680_bsec # Reports the BME680 IAQ as Text
+    iaq_accuracy:
+      id: iaq_accuracy
+      name: "BME680 IAQ Accuracy"
+
+  - platform: template
+    id: iaq_text
+    name: "BME680 IAQ Classification"
+    icon: "mdi:checkbox-marked-circle-outline"
+    lambda: |-
+      if ( int(id(iaq).state) <= 50) {
+        return {"Excellent"};
+      }
+      else if (int(id(iaq).state) >= 51 && int(id(iaq).state) <= 100) {
+        return {"Good"};
+      }
+      else if (int(id(iaq).state) >= 101 && int(id(iaq).state) <= 150) {
+        return {"Lightly polluted"};
+      }
+      else if (int(id(iaq).state) >= 151 && int(id(iaq).state) <= 200) {
+        return {"Moderately polluted"};
+      }
+      else if (int(id(iaq).state) >= 201 && int(id(iaq).state) <= 250) {
+        return {"Heavily polluted"};
+      }
+      else if (int(id(iaq).state) >= 251 && int(id(iaq).state) <= 350) {
+        return {"Severely polluted"};
+      }
+      else if (int(id(iaq).state) >= 351) {
+        return {"Extremely polluted"};
+      }
+      else {
+        return {"error"};
+      }
+
+graph:
+  - id: temperature_graph
+    sensor: temperature
+    duration: 5min
+    width: 118
+    height: 60
+    min_range: 10
+    border: True
+
+  - id: humidity_graph
+    sensor: humidity
+    duration: 5min
+    width: 118
+    height: 60
+    min_range: 10
+    border: False
+
+  - id: iaq_graph
+    sensor: iaq
+    duration: 5min
+    width: 118
+    height: 60
+    min_range: 50
+    border: False
+
+  - id: voc_graph
+    sensor: voc
+    duration: 5min
+    width: 118
+    height: 60
+    min_range: 0.5
+    border: False
+
+  - id: co2_graph
+    sensor: co2
+    duration: 5min
+    width: 118
+    height: 60
+    min_range: 100
+    border: False
+
+# For example cycle through pages on a timer
+interval:
+  - interval: 5s
+    then:
+      - display.page.show_next: lcd_display
+      - component.update: lcd_display
+
+spi:
+  clk_pin: GPIO14
+  mosi_pin: GPIO13
+
+display:
+  - platform: st7735
+    id: lcd_display
+    model: "INITR_BLACKTAB"
+    reset_pin: GPIO17
+    cs_pin: GPIO18
+    dc_pin: GPIO5
+#    rotation: 180
+    device_width: 128
+    device_height: 160
+    col_start: 0
+    row_start: 0
+    eight_bit_color: True
+    update_interval: 1s
+
+    pages:
+      #TEMP+HUM
+      - id: page_temp_hum
+        lambda: |-
+          it.printf(128, 0, id(roboto_medium), TextAlign::TOP_RIGHT, "TEMP");
+          it.printf(it.get_width()/2, 50, id(roboto_big), orange, TextAlign::CENTER, "%.1f", id(temperature).state);
+          it.printf(128, 50 + 16, id(roboto_small), orange, TextAlign::BOTTOM_RIGHT, "°C");
+          //it.graph(10, 40, id(temperature_graph));
+
+          it.printf(128, 80, id(roboto_medium), TextAlign::TOP_RIGHT, "HUM");
+          it.printf(it.get_width()/2, 130, id(roboto_big), blue, TextAlign::CENTER, "%.1f", id(humidity).state);
+          it.printf(128, 130 + 16, id(roboto_small), blue, TextAlign::BOTTOM_RIGHT, "%%");
+          //it.graph(10, 40, id(humidity_graph));
+
+          
+      #IAQ
+      - id: page_iaq
+        lambda: |-
+          auto color = id(green);
+          auto bar_size = it.get_height() / 5;
+          auto radius = bar_size/5;
+          auto circle_position = it.get_height() - (id(iaq).state / 500 * it.get_height());
+
+          // Scale on the left
+          it.filled_rectangle(0, 0, 10, it.get_height()/5*1, violet);
+          if ( circle_position >= 0 && circle_position <=  it.get_height()/5*1  ) { color = id(violet); }
+
+          it.filled_rectangle(0, bar_size*1 + 1, 10, bar_size*2, red);
+          if ( circle_position >= bar_size*1 + 1 && circle_position <=  bar_size*2  ) { color = id(red); }
+
+          it.filled_rectangle(0, bar_size*2 + 1, 10, bar_size*3, orange);
+          if ( circle_position >= bar_size*2 + 1 && circle_position <=  bar_size*3  ) { color = id(orange); }
+
+          it.filled_rectangle(0, bar_size*3 + 1, 10, bar_size*4, yellow);
+          if ( circle_position >= bar_size*3 + 1 && circle_position <=  bar_size*4  ) { color = id(yellow); }
+
+          it.filled_rectangle(0, bar_size*4 + 1, 10, bar_size*5, green);
+          if ( circle_position >= bar_size*4 + 1 && circle_position <=  bar_size*5  ) { color = id(green); }
+
+          it.printf(128, 0, id(roboto_medium), TextAlign::TOP_RIGHT, "IAQ");    
+          it.filled_circle(20, circle_position, radius, color);
+          it.printf(it.get_width()/2+10, it.get_height()/2, id(roboto_big), color, TextAlign::CENTER, "%.1f", id(iaq).state);
+          
+          it.graph(10, 100, id(iaq_graph));
+
+      #VOC
+      - id: page_voc
+        lambda: |-
+          auto color = id(green);
+          auto bar_size = it.get_height() / 5;
+          auto radius = bar_size/5;
+          auto circle_position = it.get_height() - (id(voc).state / 9 * it.get_height());
+
+          // Scale on the left
+          it.filled_rectangle(0, 0, 10, it.get_height()/5*1, violet);
+          if ( circle_position >= 0 && circle_position <=  it.get_height()/5*1  ) { color = id(violet); }
+
+          it.filled_rectangle(0, bar_size*1 + 1, 10, bar_size*2, red);
+          if ( circle_position >= bar_size*1 + 1 && circle_position <=  bar_size*2  ) { color = id(red); }
+
+          it.filled_rectangle(0, bar_size*2 + 1, 10, bar_size*3, orange);
+          if ( circle_position >= bar_size*2 + 1 && circle_position <=  bar_size*3  ) { color = id(orange); }
+
+          it.filled_rectangle(0, bar_size*3 + 1, 10, bar_size*4, yellow);
+          if ( circle_position >= bar_size*3 + 1 && circle_position <=  bar_size*4  ) { color = id(yellow); }
+
+          it.filled_rectangle(0, bar_size*4 + 1, 10, bar_size*5, green);
+          if ( circle_position >= bar_size*4 + 1 && circle_position <=  bar_size*5  ) { color = id(green); }
+
+          it.printf(128, 0, id(roboto_medium), TextAlign::TOP_RIGHT, "VOC");    
+          it.filled_circle(20, circle_position, radius, color);
+          it.printf(108, it.get_height()/2, id(roboto_big), color, TextAlign::CENTER_RIGHT, "%.1f", id(voc).state);
+          it.printf(128, it.get_height()/2 + 16, id(roboto_small), color, TextAlign::BOTTOM_RIGHT, "ppm");
+
+          it.graph(10, 100, id(voc_graph));
+
+      #CO2
+      - id: page_co2
+        lambda: |-
+          auto color = id(green);
+          auto bar_size = it.get_height() / 5;
+          auto radius = bar_size/5;
+          auto circle_position = it.get_height() - (id(co2).state / 3000 * it.get_height());
+
+          // Scale on the left
+          it.filled_rectangle(0, 0, 10, it.get_height()/5*1, violet);
+          if ( circle_position >= 0 && circle_position <=  it.get_height()/5*1  ) { color = id(violet); }
+
+          it.filled_rectangle(0, bar_size*1 + 1, 10, bar_size*2, red);
+          if ( circle_position >= bar_size*1 + 1 && circle_position <=  bar_size*2  ) { color = id(red); }
+
+          it.filled_rectangle(0, bar_size*2 + 1, 10, bar_size*3, orange);
+          if ( circle_position >= bar_size*2 + 1 && circle_position <=  bar_size*3  ) { color = id(orange); }
+
+          it.filled_rectangle(0, bar_size*3 + 1, 10, bar_size*4, yellow);
+          if ( circle_position >= bar_size*3 + 1 && circle_position <=  bar_size*4  ) { color = id(yellow); }
+
+          it.filled_rectangle(0, bar_size*4 + 1, 10, bar_size*5, green);
+          if ( circle_position >= bar_size*4 + 1 && circle_position <=  bar_size*5  ) { color = id(green); }
+
+          it.printf(128, 0, id(roboto_medium), TextAlign::TOP_RIGHT, "CO2");    
+          it.filled_circle(20, circle_position, radius, color);
+          it.printf(108, it.get_height()/2, id(roboto_big), color, TextAlign::CENTER_RIGHT, "%.0f", id(co2).state);
+          it.printf(128, it.get_height()/2 + 16, id(roboto_small), color, TextAlign::BOTTOM_RIGHT, "ppm");
+
+          it.graph(10, 100, id(co2_graph));
+
+
+font:
+  # gfonts://family[@weight]
+  - file: "gfonts://Roboto@Light"
+    id: roboto_small
+    size: 10
+
+  - file: "gfonts://Roboto@Light"
+    id: roboto
+    size: 20
+
+  - file: "gfonts://Roboto"
+    id: roboto_medium
+    size: 30
+
+  - file: "gfonts://Roboto"
+    id: roboto_big
+    size: 35
+
+color:
+  - id: violet
+    red: 100%
+    green: 0%
+    blue: 100%
+    white: 0%
+
+  - id: red
+    red: 100%
+    green: 0%
+    blue: 0%
+    white: 0%
+
+  - id: orange
+    red: 100%
+    green: 50%
+    blue: 0%
+    white: 0%
+
+  - id: yellow
+    red: 100%
+    green: 100%
+    blue: 0%
+    white: 0%
+
+  - id: green
+    red: 0%
+    green: 100%
+    blue: 0%
+    white: 0%
+
+  - id: blue
+    red: 0%
+    green: 75%
+    blue: 100%
+    white: 0%
