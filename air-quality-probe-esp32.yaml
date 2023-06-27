@@ -1,7 +1,7 @@
 # These substitutions allow the end user to override certain values
 substitutions:
   name: "air-quality-probe"
-  version: "0.1"
+  version: "0.2"
 
 esphome:
   name: "${name}"
@@ -48,6 +48,9 @@ improv_serial:
 
 #####################
 #####################
+
+web_server:
+  port: 80
 
 switch:
   - platform: gpio
