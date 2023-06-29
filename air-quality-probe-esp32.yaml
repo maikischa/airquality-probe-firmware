@@ -2,6 +2,7 @@
 substitutions:
   name: "air-quality-probe"
   version: "0.2"
+  temperature_offset: "6.0"
 
 esphome:
   name: "${name}"
@@ -65,7 +66,7 @@ i2c:
 
 bme680_bsec:
   address: 0x77
-  temperature_offset: 4.0
+  temperature_offset: ${temperature_offset}
 
 sensor:
   - platform: wifi_signal # Reports the WiFi signal strength/RSSI in dB
