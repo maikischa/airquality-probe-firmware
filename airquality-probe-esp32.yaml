@@ -1,7 +1,7 @@
 # These substitutions allow the end user to override certain values
 substitutions:
   name: "air-quality-probe"
-  version: "0.3"
+  version: "0.4"
   temperature_offset: "6.0"
 
 esphome:
@@ -75,33 +75,25 @@ sensor:
     update_interval: 60s
     entity_category: "diagnostic"
 
-  - platform: copy # Reports the WiFi signal strength in %
-    source_id: wifi_signal_db
-    name: "WiFi Signal Percent"
-    filters:
-      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
-    unit_of_measurement: "Signal %"
-    entity_category: "diagnostic"
-
   - platform: bme680_bsec # Reports the BME680 values
     temperature:
       id: temperature
-      name: "BME680 Temperature"
+      name: "Temperature"
     pressure:
       id: pressure
-      name: "BME680 Pressure"
+      name: "Pressure"
     humidity:
       id: humidity
-      name: "BME680 Humidity"
+      name: "Humidity"
     iaq:
-      name: "BME680 IAQ"
+      name: "IAQ"
       id: iaq
     co2_equivalent:
       id: co2
-      name: "BME680 CO2 Equivalent"
+      name: "CO2 Equivalent"
     breath_voc_equivalent:
       id: voc
-      name: "BME680 Breath VOC Equivalent"
+      name: "Breath VOC Equivalent"
 
 binary_sensor:
   - platform: gpio
@@ -123,11 +115,11 @@ text_sensor:
   - platform: bme680_bsec # Reports the BME680 IAQ as Text
     iaq_accuracy:
       id: iaq_accuracy
-      name: "BME680 IAQ Accuracy"
+      name: "IAQ Accuracy"
 
   - platform: template
     id: iaq_text
-    name: "BME680 IAQ Classification"
+    name: "IAQ Classification"
     icon: "mdi:checkbox-marked-circle-outline"
     lambda: |-
       if ( int(id(iaq).state) <= 50) {
