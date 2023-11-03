@@ -1,7 +1,7 @@
 # These substitutions allow the end user to override certain values
 substitutions:
   name: "airquality-probe"
-  version: "0.7"
+  version: "0.8"
   temperature_offset: "6.0"
 
 esphome:
