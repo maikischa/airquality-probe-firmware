@@ -1,7 +1,7 @@
 # These substitutions allow the end user to override certain values
 substitutions:
   name: "airquality-probe"
-  version: "0.6"
+  version: "0.7"
   temperature_offset: "6.0"
 
 esphome:
@@ -57,7 +57,7 @@ switch:
   - platform: gpio
     id: lcd
     pin: GPIO19
-    name: "LCD"
+    name: "${name} LCD"
     restore_mode: ALWAYS_ON
 
 i2c:
@@ -70,7 +70,7 @@ bme680_bsec:
 
 sensor:
   - platform: wifi_signal # Reports the WiFi signal strength/RSSI in dB
-    name: "WiFi Signal dB"
+    name: "${name} WiFi Signal dB"
     id: wifi_signal_db
     update_interval: 60s
     entity_category: "diagnostic"
@@ -78,22 +78,22 @@ sensor:
   - platform: bme680_bsec # Reports the BME680 values
     temperature:
       id: temperature
-      name: "Temperature"
+      name: "${name} Temperature"
     pressure:
       id: pressure
-      name: "Pressure"
+      name: "${name} Pressure"
     humidity:
       id: humidity
-      name: "Humidity"
+      name: "${name} Humidity"
     iaq:
-      name: "IAQ"
+      name: "${name} IAQ"
       id: iaq
     co2_equivalent:
       id: co2
-      name: "CO2 Equivalent"
+      name: "${name} CO2 Equivalent"
     breath_voc_equivalent:
       id: voc
-      name: "Breath VOC Equivalent"
+      name: "${name} Breath VOC Equivalent"
 
 binary_sensor:
   - platform: gpio
@@ -102,14 +102,14 @@ binary_sensor:
       mode:
         input: true
         pulldown: True
-    name: input1
+    name: "${name} input1"
   - platform: gpio
     pin: 
       number: GPIO4
       mode:
         input: true
         pulldown: True
-    name: input2
+    name: "${name} input2"
 
 text_sensor:
   - platform: bme680_bsec # Reports the BME680 IAQ as Text
@@ -119,7 +119,7 @@ text_sensor:
 
   - platform: template
     id: iaq_text
-    name: "IAQ Classification"
+    name: "${name} IAQ Classification"
     icon: "mdi:checkbox-marked-circle-outline"
     lambda: |-
       if ( int(id(iaq).state) <= 50) {
