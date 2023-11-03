@@ -2,7 +2,7 @@
   "chipFamily": "ESP32",
   "parts": [
     {
-      "path": "air-quality-probe-esp32/air-quality-probe-esp32.bin",
+      "path": "airquality-probe-esp32/airquality-probe-esp32.bin",
       "offset": 0
     }
   ]
