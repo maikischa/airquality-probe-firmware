@@ -54,11 +54,16 @@ improv_serial:
 web_server:
   port: 80
 
-switch:
-  - platform: gpio
-    id: lcd
+output:
+  - platform: ledc
     pin: GPIO19
-    name: "${name} LCD"
+    id: former_led_pin
+
+light:
+  - platform: monochromatic
+    output: former_led_pin
+    name: "Display Backlight"
+    id: back_light
     restore_mode: ALWAYS_ON
 
 i2c:
