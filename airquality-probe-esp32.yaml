@@ -72,7 +72,7 @@ i2c:
 
 bme68x_bsec2_i2c:
   address: 0x77
-  model: bme680:
+  model: bme680
   temperature_offset: ${temperature_offset}
 
 sensor:
