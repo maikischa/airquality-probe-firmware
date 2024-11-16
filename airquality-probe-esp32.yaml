@@ -70,8 +70,9 @@ i2c:
   sda: GPIO21
   scl: GPIO22
 
-bme680_bsec:
+bme68x_bsec2_i2c:
   address: 0x77
+  model: bme680:
   temperature_offset: ${temperature_offset}
 
 sensor:
@@ -81,7 +82,7 @@ sensor:
     update_interval: 60s
     entity_category: "diagnostic"
 
-  - platform: bme680_bsec # Reports the BME680 values
+  - platform: bme68x_bsec2 # Reports the BME680 values
     temperature:
       id: temperature
       name: "Temperature"
@@ -118,7 +119,7 @@ binary_sensor:
     name: "input2"
 
 text_sensor:
-  - platform: bme680_bsec # Reports the BME680 IAQ as Text
+  - platform: bme68x_bsec2 # Reports the BME680 IAQ as Text
     iaq_accuracy:
       id: iaq_accuracy
       name: "IAQ Accuracy"
