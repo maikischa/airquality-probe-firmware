@@ -6,9 +6,13 @@
   "builds": [
     {
       "chipFamily": "ESP32",
+      "ota": {
+        "path": "airquality-probe-esp32/airquality-probe-esp32.ota.bin",
+        "md5": "18349fa2db1599799e1529a6b5247071"
+      },
       "parts": [
         {
-          "path": "airquality-probe-esp32/airquality-probe-esp32.bin",
+          "path": "airquality-probe-esp32/airquality-probe-esp32.factory.bin",
           "offset": 0
         }
       ]
